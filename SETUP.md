@@ -13,8 +13,8 @@ A comprehensive election management system built with Python and Tkinter for Ubu
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/election-management-system.git
-cd election-management-system
+git clone https://github.com/Pixelrick420/Election.git
+cd Election
 ```
 
 ### 2. Create Virtual Environment
