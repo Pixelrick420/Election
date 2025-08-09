@@ -15,7 +15,7 @@ APP_TITLE = "Election Management System"
 def run_app():
     root = tk.Tk()
     root.title(APP_TITLE)
-    root.geometry('1300x650')  # Back to original size, optimized padding instead
+    root.geometry('1140x650')  # Back to original size, optimized padding instead
 
     app = ElectionApp(root)
     root.protocol('WM_DELETE_WINDOW', app.on_close)
@@ -44,18 +44,16 @@ class ElectionApp:
         main = tk.Frame(self.root)
         main.pack(fill='both', expand=True)
 
-        # Left panel: Elections list with Add/Delete buttons
-        left = tk.Frame(main, width=320, bd=1, relief='sunken')  # Reduced from 336
+        left = tk.Frame(main, width=280, bd=1, relief='sunken')  
         left.pack(side='left', fill='y')
 
         hdr = tk.Frame(left)
-        hdr.pack(fill='x', padx=8, pady=8)  # Reduced from 12
-        tk.Label(hdr, text='Elections', font=('Arial', 17, 'bold')).pack(side='left')  # Keep large font
+        hdr.pack(fill='x', padx=16, pady=8)  
+        tk.Label(hdr, text='Elections', font=('Arial', 14, 'bold')).pack(side='left')  
         
         btn_frame = tk.Frame(hdr)
         btn_frame.pack(side='right')
         
-        # Green Add button
         add_btn = tk.Button(btn_frame, text='Add', width=7, height=1, bg='#28a745', fg='white', 
                            font=('Arial', 11, 'bold'), relief='raised', bd=2,  # Keep font size
                            activebackground='#218838', activeforeground='white',
@@ -80,32 +78,31 @@ class ElectionApp:
         right.pack(side='right', fill='both', expand=True)
 
         top_info = tk.Frame(right)
-        top_info.pack(fill='x', padx=18, pady=12)  # Increased padding
+        top_info.pack(fill='x', padx=18, pady=12) 
         self.election_label = tk.Label(top_info, text='No election selected', 
-                                      font=('Arial', 19, 'bold'), fg='#343a40')  # Increased from 16
+                                      font=('Arial', 12, 'bold'), fg='#343a40')  
         self.election_label.pack(side='left')
 
         ctrl = tk.Frame(top_info)
         ctrl.pack(side='right')
         
-        # Styled control buttons
-        start_btn = tk.Button(ctrl, text='Start Voting', bg='#28a745', fg='white', 
-                             font=('Arial', 12, 'bold'), padx=18, pady=6,  # Increased from 10, 15, 5
+        start_btn = tk.Button(ctrl, text='Start', bg='#28a745', fg='white', 
+                             font=('Arial', 12, 'bold'), padx=18, pady=6,  
                              relief='raised', bd=2, activebackground='#218838',
                              command=self.start_voting)
-        start_btn.pack(side='left', padx=6)  # Increased padding
+        start_btn.pack(side='left', padx=6)  
         
-        view_btn = tk.Button(ctrl, text='View Results', bg='#17a2b8', fg='white',
-                            font=('Arial', 12, 'bold'), padx=18, pady=6,  # Increased from 10, 15, 5
+        view_btn = tk.Button(ctrl, text='View', bg='#17a2b8', fg='white',
+                            font=('Arial', 12, 'bold'), padx=18, pady=6,  
                             relief='raised', bd=2, activebackground='#138496',
                             command=self.view_results)
-        view_btn.pack(side='left', padx=6)  # Increased padding
+        view_btn.pack(side='left', padx=6) 
         
-        clear_btn = tk.Button(ctrl, text='Clear Results', bg='#ffc107', fg='black',
-                             font=('Arial', 12, 'bold'), padx=18, pady=6,  # Increased from 10, 15, 5
+        clear_btn = tk.Button(ctrl, text='Clear', bg='#ffc107', fg='black',
+                             font=('Arial', 12, 'bold'), padx=18, pady=6,  
                              relief='raised', bd=2, activebackground='#e0a800',
                              command=self.clear_results)
-        clear_btn.pack(side='left', padx=6)  # Increased padding
+        clear_btn.pack(side='left', padx=6) 
         
         export_btn = tk.Button(ctrl, text='Export', bg='#6c757d', fg='white',
                               font=('Arial', 12, 'bold'), padx=18, pady=6,  # Increased from 10, 15, 5
@@ -130,7 +127,7 @@ class ElectionApp:
         self.tree = ttk.Treeview(tree_frame, columns=('id','name','symbol'), show='headings', selectmode='browse')
         self.tree.heading('id', text='ID')
         self.tree.heading('name', text='Name')
-        self.tree.heading('symbol', text='Symbol File')
+        self.tree.heading('symbol', text='Symbol')
         self.tree.column('id', width=72, anchor='center')  # Increased from 60
         self.tree.column('name', width=360)  # Increased from 300
         self.tree.column('symbol', width=180)  # Increased from 150
