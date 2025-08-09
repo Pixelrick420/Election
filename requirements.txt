@@ -1,0 +1,8 @@
+altgraph==0.17.4
+charset-normalizer==3.4.3
+packaging==25.0
+pillow==11.3.0
+pyinstaller==6.15.0
+pyinstaller-hooks-contrib==2025.8
+reportlab==4.4.3
+setuptools==80.9.0
