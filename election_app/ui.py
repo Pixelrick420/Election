@@ -15,7 +15,7 @@ APP_TITLE = "Election Management System"
 def run_app():
     root = tk.Tk()
     root.title(APP_TITLE)
-    root.geometry('1440x780')  # Increased from 1200x650 to accommodate larger fonts
+    root.geometry('1300x650')  # Back to original size, optimized padding instead
 
     app = ElectionApp(root)
     root.protocol('WM_DELETE_WINDOW', app.on_close)
@@ -45,34 +45,34 @@ class ElectionApp:
         main.pack(fill='both', expand=True)
 
         # Left panel: Elections list with Add/Delete buttons
-        left = tk.Frame(main, width=336, bd=1, relief='sunken')  # Increased from 280
+        left = tk.Frame(main, width=320, bd=1, relief='sunken')  # Reduced from 336
         left.pack(side='left', fill='y')
 
         hdr = tk.Frame(left)
-        hdr.pack(fill='x', padx=12, pady=12)  # Increased padding
-        tk.Label(hdr, text='Elections', font=('Arial', 17, 'bold')).pack(side='left')  # Increased from 14
+        hdr.pack(fill='x', padx=8, pady=8)  # Reduced from 12
+        tk.Label(hdr, text='Elections', font=('Arial', 17, 'bold')).pack(side='left')  # Keep large font
         
         btn_frame = tk.Frame(hdr)
         btn_frame.pack(side='right')
         
         # Green Add button
         add_btn = tk.Button(btn_frame, text='Add', width=7, height=1, bg='#28a745', fg='white', 
-                           font=('Arial', 11, 'bold'), relief='raised', bd=2,  # Increased from 9
+                           font=('Arial', 11, 'bold'), relief='raised', bd=2,  # Keep font size
                            activebackground='#218838', activeforeground='white',
                            command=self.create_election_dialog)
-        add_btn.pack(side='left', padx=(0,6))  # Increased padding
+        add_btn.pack(side='left', padx=(0,4))  # Reduced from 6
         
         # Red Delete button  
         del_btn = tk.Button(btn_frame, text='Delete', width=7, height=1, bg='#dc3545', fg='white',
-                           font=('Arial', 11, 'bold'), relief='raised', bd=2,  # Increased from 9
+                           font=('Arial', 11, 'bold'), relief='raised', bd=2,  # Keep font size
                            activebackground='#c82333', activeforeground='white',
                            command=self.delete_election_dialog)
         del_btn.pack(side='left')
 
-        self.election_list = tk.Listbox(left, width=45, selectbackground='#007bff',  # Increased from 42
-                                       selectforeground='white', font=('Arial', 12),  # Increased from 10
+        self.election_list = tk.Listbox(left, width=43, selectbackground='#007bff',  # Reduced from 45
+                                       selectforeground='white', font=('Arial', 12),  # Keep font size
                                        relief='sunken', bd=2)
-        self.election_list.pack(fill='both', expand=True, padx=12, pady=(6,12))  # Increased padding
+        self.election_list.pack(fill='both', expand=True, padx=8, pady=(4,8))  # Reduced padding
         self.election_list.bind('<<ListboxSelect>>', self._on_election_select)
 
         # Right panel: Candidate management and controls
