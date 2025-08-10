@@ -15,7 +15,7 @@ APP_TITLE = "Election Management System"
 def run_app():
     root = tk.Tk()
     root.title(APP_TITLE)
-    root.geometry('1140x650')  # Back to original size, optimized padding instead
+    root.geometry('1140x650') 
 
     app = ElectionApp(root)
     root.protocol('WM_DELETE_WINDOW', app.on_close)
@@ -32,9 +32,8 @@ class ElectionApp:
         self._load_elections()
 
     def _build_ui(self):
-        # Top menu
-        menubar = tk.Menu(self.root, font=('Arial', 11))  # Increased from default
-        file_menu = tk.Menu(menubar, tearoff=0, font=('Arial', 11))  # Increased from default
+        menubar = tk.Menu(self.root, font=('Arial', 11)) 
+        file_menu = tk.Menu(menubar, tearoff=0, font=('Arial', 11))  
         file_menu.add_command(label='Export Results', command=self.export_results)
         file_menu.add_separator()
         file_menu.add_command(label='Exit', command=self.on_close)
@@ -55,25 +54,23 @@ class ElectionApp:
         btn_frame.pack(side='right')
         
         add_btn = tk.Button(btn_frame, text='Add', width=7, height=1, bg='#28a745', fg='white', 
-                           font=('Arial', 11, 'bold'), relief='raised', bd=2,  # Keep font size
+                           font=('Arial', 11, 'bold'), relief='raised', bd=2,  
                            activebackground='#218838', activeforeground='white',
                            command=self.create_election_dialog)
-        add_btn.pack(side='left', padx=(0,4))  # Reduced from 6
+        add_btn.pack(side='left', padx=(0,4))  
         
-        # Red Delete button  
         del_btn = tk.Button(btn_frame, text='Delete', width=7, height=1, bg='#dc3545', fg='white',
-                           font=('Arial', 11, 'bold'), relief='raised', bd=2,  # Keep font size
+                           font=('Arial', 11, 'bold'), relief='raised', bd=2,  
                            activebackground='#c82333', activeforeground='white',
                            command=self.delete_election_dialog)
         del_btn.pack(side='left')
 
-        self.election_list = tk.Listbox(left, width=43, selectbackground='#007bff',  # Reduced from 45
-                                       selectforeground='white', font=('Arial', 12),  # Keep font size
+        self.election_list = tk.Listbox(left, width=43, selectbackground='#007bff', 
+                                       selectforeground='white', font=('Arial', 12),  
                                        relief='sunken', bd=2)
-        self.election_list.pack(fill='both', expand=True, padx=8, pady=(4,8))  # Reduced padding
+        self.election_list.pack(fill='both', expand=True, padx=8, pady=(4,8)) 
         self.election_list.bind('<<ListboxSelect>>', self._on_election_select)
 
-        # Right panel: Candidate management and controls
         right = tk.Frame(main, bd=0)
         right.pack(side='right', fill='both', expand=True)
 
@@ -105,59 +102,121 @@ class ElectionApp:
         clear_btn.pack(side='left', padx=6) 
         
         export_btn = tk.Button(ctrl, text='Export', bg='#6c757d', fg='white',
-                              font=('Arial', 12, 'bold'), padx=18, pady=6,  # Increased from 10, 15, 5
+                              font=('Arial', 12, 'bold'), padx=18, pady=6, 
                               relief='raised', bd=2, activebackground='#5a6268',
                               command=self.export_results)
-        export_btn.pack(side='left', padx=6)  # Increased padding
+        export_btn.pack(side='left', padx=6)  
 
-        # Candidates section with improved styling
-        cand_frame = tk.LabelFrame(right, text='Candidates', font=('Arial', 14, 'bold'),  # Increased from 12
+        cand_frame = tk.LabelFrame(right, text='Candidates', font=('Arial', 14, 'bold'), 
                                   fg='#343a40', relief='groove', bd=2)
-        cand_frame.pack(fill='both', expand=True, padx=18, pady=12)  # Increased padding
+        cand_frame.pack(fill='both', expand=True, padx=18, pady=12) 
 
-        # Create frame for treeview and scrollbar
         tree_frame = tk.Frame(cand_frame)
-        tree_frame.pack(fill='both', expand=True, padx=12, pady=12)  # Increased padding
+        tree_frame.pack(fill='both', expand=True, padx=12, pady=12)  
 
-        # Configure ttk style for larger fonts
         style = ttk.Style()
-        style.configure("Treeview", font=('Arial', 12))  # Increased from default
-        style.configure("Treeview.Heading", font=('Arial', 12, 'bold'))  # Increased from default
+        style.configure("Treeview", font=('Arial', 12)) 
+        style.configure("Treeview.Heading", font=('Arial', 12, 'bold')) 
 
         self.tree = ttk.Treeview(tree_frame, columns=('id','name','symbol'), show='headings', selectmode='browse')
         self.tree.heading('id', text='ID')
         self.tree.heading('name', text='Name')
         self.tree.heading('symbol', text='Symbol')
-        self.tree.column('id', width=72, anchor='center')  # Increased from 60
-        self.tree.column('name', width=360)  # Increased from 300
-        self.tree.column('symbol', width=180)  # Increased from 150
+        self.tree.column('id', width=72, anchor='center') 
+        self.tree.column('name', width=360)  
+        self.tree.column('symbol', width=180) 
         self.tree.pack(side='left', fill='both', expand=True)
 
         sb = ttk.Scrollbar(tree_frame, orient='vertical', command=self.tree.yview)
         self.tree.configure(yscrollcommand=sb.set)
         sb.pack(side='right', fill='y')
 
-        # Candidate management buttons with improved styling
         btns = tk.Frame(right)
-        btns.pack(fill='x', padx=18, pady=(0,18))  # Increased padding
+        btns.pack(fill='x', padx=18, pady=(0,18)) 
         
         add_cand_btn = tk.Button(btns, text='Add Candidate', bg='#28a745', fg='white',
-                                font=('Arial', 12, 'bold'), padx=18, pady=6,  # Increased from 10, 15, 5
+                                font=('Arial', 12, 'bold'), padx=18, pady=6,
                                 relief='raised', bd=2, activebackground='#218838',
                                 command=self.add_candidate)
-        add_cand_btn.pack(side='left', padx=(0,10))  # Increased padding
+        add_cand_btn.pack(side='left', padx=(0,10))  
         
         edit_cand_btn = tk.Button(btns, text='Edit Candidate', bg='#007bff', fg='white',
-                                 font=('Arial', 12, 'bold'), padx=18, pady=6,  # Increased from 10, 15, 5
+                                 font=('Arial', 12, 'bold'), padx=18, pady=6, 
                                  relief='raised', bd=2, activebackground='#0056b3',
                                  command=self.edit_candidate)
-        edit_cand_btn.pack(side='left', padx=(0,10))  # Increased padding
+        edit_cand_btn.pack(side='left', padx=(0,10)) 
         
         del_cand_btn = tk.Button(btns, text='Delete Candidate', bg='#dc3545', fg='white',
-                                font=('Arial', 12, 'bold'), padx=18, pady=6,  # Increased from 10, 15, 5
+                                font=('Arial', 12, 'bold'), padx=18, pady=6, 
                                 relief='raised', bd=2, activebackground='#c82333',
                                 command=self.delete_candidate)
         del_cand_btn.pack(side='left')
+
+    def _validate_symbol_uniqueness(self, symbol_path, candidate_id=None):
+        """Check if symbol is unique within the current election"""
+        if not symbol_path or not self.current_election_id:
+            return True
+            
+        symbol_path = os.path.normpath(symbol_path)
+        
+        if candidate_id:
+            existing = self.db.execute('''
+                SELECT id, name FROM Candidates 
+                WHERE election_id = ? AND symbol_path = ? AND id != ? AND (is_nota IS NULL OR is_nota = 0)
+            ''', (self.current_election_id, symbol_path, candidate_id), fetch=True)
+        else:
+            existing = self.db.execute('''
+                SELECT id, name FROM Candidates 
+                WHERE election_id = ? AND symbol_path = ? AND (is_nota IS NULL OR is_nota = 0)
+            ''', (self.current_election_id, symbol_path), fetch=True)
+        
+        if existing:
+            candidate_names = [name for _, name in existing]
+            messagebox.showerror('Duplicate Symbol', 
+                               f'This symbol is already used by: {", ".join(candidate_names)}\n\n'
+                               'Each candidate must have a unique symbol.')
+            return False
+        return True
+
+    def _validate_election_symbols(self):
+        """Validate that all candidates have unique symbols and no missing symbols"""
+        if not self.current_election_id:
+            return False, "No election selected"
+            
+        candidates = self.db.execute('''
+            SELECT id, name, symbol_path FROM Candidates 
+            WHERE election_id = ? AND (is_nota IS NULL OR is_nota = 0)
+        ''', (self.current_election_id,), fetch=True)
+        
+        if not candidates:
+            return False, "No candidates found"
+        
+        missing_symbols = []
+        symbol_paths = []
+        
+        for cid, name, symbol_path in candidates:
+            if not symbol_path or not os.path.exists(symbol_path):
+                missing_symbols.append(name)
+            else:
+                normalized_path = os.path.normpath(symbol_path)
+                symbol_paths.append((normalized_path, name))
+        
+        if missing_symbols:
+            return False, f"Missing symbols for: {', '.join(missing_symbols)}"
+        
+        seen_symbols = {}
+        duplicates = []
+        
+        for symbol_path, name in symbol_paths:
+            if symbol_path in seen_symbols:
+                duplicates.append(f"{name} and {seen_symbols[symbol_path]}")
+            else:
+                seen_symbols[symbol_path] = name
+        
+        if duplicates:
+            return False, f"Duplicate symbols found: {'; '.join(duplicates)}"
+        
+        return True, "All symbols are valid and unique"
 
     def _load_elections(self):
         self.election_list.delete(0, 'end')
@@ -166,7 +225,6 @@ class ElectionApp:
         for eid, name in rows:
             self.election_list.insert('end', f"{name} (ID:{eid})")
         
-        # Highlight currently selected election
         if hasattr(self, 'current_election_id') and self.current_election_id:
             for idx, (id_, name) in enumerate(self._elections):
                 if id_ == self.current_election_id:
@@ -178,13 +236,11 @@ class ElectionApp:
         d = ElectionDialog(self.root)
         if getattr(d, 'result', None):
             name, pw = d.result
-            # create election
             try:
                 from .security import SecurityManager
                 h = SecurityManager.hash_password(pw)
                 eid = self.db.execute('INSERT INTO Elections (name, admin_password_hash) VALUES (?, ?)', (name, h))
                 self._load_elections()
-                # auto-select the newly created election
                 self._select_election_by_id(eid)
                 messagebox.showinfo('Created', f"Election '{name}' created.")
             except Exception as e:
@@ -199,7 +255,6 @@ class ElectionApp:
         idx = sel[0]
         eid, name = self._elections[idx]
         
-        # Always ask for password regardless of selection
         pw = simpledialog.askstring('Admin Password', f'Enter admin password to delete "{name}":', show='*')
         if pw is None:
             return
@@ -209,16 +264,13 @@ class ElectionApp:
             messagebox.showerror('Invalid', 'Incorrect password')
             return
             
-        # Confirm deletion
         if not messagebox.askyesno('Confirm Deletion', 
                                   f'Are you sure you want to delete election "{name}"?\n\n'
                                   'This will permanently delete all candidates and votes!'):
             return
         
-        # Delete election (cascade will handle candidates and votes)
         self.db.execute('DELETE FROM Elections WHERE id = ?', (eid,))
         
-        # Clear current selection if deleted election was selected
         if hasattr(self, 'current_election_id') and self.current_election_id == eid:
             self.current_election_id = None
             self.election_label.config(text='No election selected')
@@ -228,7 +280,6 @@ class ElectionApp:
         messagebox.showinfo('Deleted', f'Election "{name}" has been deleted.')
 
     def _select_election_by_id(self, eid):
-        # refresh list and select the appropriate index
         self._load_elections()
         for idx, (id_, name) in enumerate(self._elections):
             if id_ == eid:
@@ -245,20 +296,17 @@ class ElectionApp:
         idx = sel[0]
         eid, name = self._elections[idx]
         
-        # If clicking on already selected election, don't prompt for password
         if hasattr(self, 'current_election_id') and self.current_election_id == eid:
             return
         
-        # prompt for admin password when loading existing election
         pw = simpledialog.askstring('Admin Password', 'Enter admin password:', show='*')
         if pw is None:
-            # undo selection and restore previous selection
-            self._load_elections()  # This will restore the previous selection highlighting
+            self._load_elections()  
             return
         stored = self.db.execute('SELECT admin_password_hash FROM Elections WHERE id = ?', (eid,), fetch=True)
         if not stored or not SecurityManager.verify_password(pw, stored[0][0]):
             messagebox.showerror('Invalid', 'Incorrect password')
-            self._load_elections()  # This will restore the previous selection highlighting
+            self._load_elections()  
             return
         self._set_current_election(eid, name)
 
@@ -266,7 +314,7 @@ class ElectionApp:
         self.current_election_id = eid
         self.election_label.config(text=f"Election: {name}")
         self._refresh_candidates()
-        self._load_elections()  # Refresh to update highlighting
+        self._load_elections()  
 
     def _refresh_candidates(self):
         for i in self.tree.get_children():
@@ -275,9 +323,13 @@ class ElectionApp:
             return
         rows = self.db.execute('SELECT id, name, symbol_path FROM Candidates WHERE election_id = ? AND (is_nota IS NULL OR is_nota = 0)', (self.current_election_id,), fetch=True)
         for cid, name, symbol_path in rows:
-            # Extract just the filename from the full path
-            symbol_filename = os.path.basename(symbol_path) if symbol_path else 'No Symbol'
-            self.tree.insert('', 'end', values=(cid, name, symbol_filename))
+            if not symbol_path:
+                symbol_display = 'No Symbol'
+            elif not os.path.exists(symbol_path):
+                symbol_display = f'{os.path.basename(symbol_path)} (Missing)'
+            else:
+                symbol_display = os.path.basename(symbol_path)
+            self.tree.insert('', 'end', values=(cid, name, symbol_display))
 
     def add_candidate(self):
         if not self.current_election_id:
@@ -287,9 +339,22 @@ class ElectionApp:
         self.root.wait_window(d)
         if getattr(d, 'result', None):
             r = d.result
+            
+            if not r['symbol_path'] or not r['symbol_path'].strip():
+                messagebox.showerror('Missing Symbol', 'Each candidate must have a symbol assigned.')
+                return
+            
+            if not os.path.exists(r['symbol_path']):
+                messagebox.showerror('Invalid Symbol', f'Symbol file does not exist:\n{r["symbol_path"]}')
+                return
+            
+            if not self._validate_symbol_uniqueness(r['symbol_path']):
+                return
+            
             self.db.execute('INSERT INTO Candidates (election_id, name, symbol_path) VALUES (?, ?, ?)',
                             (self.current_election_id, r['name'], r['symbol_path']))
             self._refresh_candidates()
+            messagebox.showinfo('Success', f'Candidate "{r["name"]}" added successfully.')
 
     def edit_candidate(self):
         sel = self.tree.selection()
@@ -304,9 +369,22 @@ class ElectionApp:
         self.root.wait_window(d)
         if getattr(d, 'result', None):
             r = d.result
+            
+            if not r['symbol_path'] or not r['symbol_path'].strip():
+                messagebox.showerror('Missing Symbol', 'Each candidate must have a symbol assigned.')
+                return
+            
+            if not os.path.exists(r['symbol_path']):
+                messagebox.showerror('Invalid Symbol', f'Symbol file does not exist:\n{r["symbol_path"]}')
+                return
+            
+            if not self._validate_symbol_uniqueness(r['symbol_path'], cid):
+                return
+            
             self.db.execute('UPDATE Candidates SET name = ?, symbol_path = ? WHERE id = ?',
                             (r['name'], r['symbol_path'], cid))
             self._refresh_candidates()
+            messagebox.showinfo('Success', f'Candidate "{r["name"]}" updated successfully.')
 
     def delete_candidate(self):
         sel = self.tree.selection()
@@ -317,18 +395,29 @@ class ElectionApp:
             return
         item = self.tree.item(sel[0])
         cid = item['values'][0]
+        candidate_name = item['values'][1]
+        
         self.db.execute('DELETE FROM Votes WHERE candidate_id = ?', (cid,))
         self.db.execute('DELETE FROM Candidates WHERE id = ?', (cid,))
         self._refresh_candidates()
+        messagebox.showinfo('Deleted', f'Candidate "{candidate_name}" has been deleted.')
 
     def start_voting(self):
         if not self.current_election_id:
             messagebox.showerror('Error', 'Select an election first')
             return
-        count = self.db.execute('SELECT COUNT(*) FROM Candidates WHERE election_id = ?', (self.current_election_id,), fetch=True)[0][0]
-        if count < 1:  # Changed from 2 to 1 since NOTA will be added automatically
+        count = self.db.execute('SELECT COUNT(*) FROM Candidates WHERE election_id = ? AND (is_nota IS NULL OR is_nota = 0)', (self.current_election_id,), fetch=True)[0][0]
+        if count < 1:  
             messagebox.showerror('Error', 'Need at least 1 candidate')
             return
+        
+        is_valid, message = self._validate_election_symbols()
+        if not is_valid:
+            messagebox.showerror('Symbol Validation Error', 
+                               f'Cannot start voting due to symbol issues:\n\n{message}\n\n'
+                               'Please fix these issues before starting the election.')
+            return
+        
         admin_hash = self.db.execute('SELECT admin_password_hash FROM Elections WHERE id = ?', (self.current_election_id,), fetch=True)[0][0]
         VotingInterface(self.root, self.current_election_id, admin_hash, self.db)
 
@@ -348,43 +437,39 @@ class ElectionApp:
 
         w = tk.Toplevel(self.root)
         w.title('Results')
-        w.geometry('840x600')  # Increased from 700x500
+        w.geometry('840x600')  
         w.configure(bg='#f8f9fa')
         
-        # Title with better styling
         title_frame = tk.Frame(w, bg='#f8f9fa')
-        title_frame.pack(fill='x', pady=18)  # Increased padding
+        title_frame.pack(fill='x', pady=18)  
         tk.Label(title_frame, text=f"Results for Election ID: {self.current_election_id}", 
-                font=('Arial', 19, 'bold'), bg='#f8f9fa', fg='#343a40').pack()  # Increased from 16
+                font=('Arial', 19, 'bold'), bg='#f8f9fa', fg='#343a40').pack()  
 
-        # Results tree with better styling
         tree_frame = tk.Frame(w, bg='#f8f9fa')
-        tree_frame.pack(fill='both', expand=True, padx=24, pady=(0,24))  # Increased padding
+        tree_frame.pack(fill='both', expand=True, padx=24, pady=(0,24))  
         
-        # Configure style for results tree
         results_style = ttk.Style()
-        results_style.configure("Results.Treeview", font=('Arial', 12))  # Increased font
-        results_style.configure("Results.Treeview.Heading", font=('Arial', 13, 'bold'))  # Increased font
+        results_style.configure("Results.Treeview", font=('Arial', 12)) 
+        results_style.configure("Results.Treeview.Heading", font=('Arial', 13, 'bold'))  
         
         tree = ttk.Treeview(tree_frame, columns=('Votes','Percent'), show='tree headings', style="Results.Treeview")
         tree.heading('#0', text='Candidate')
         tree.heading('Votes', text='Votes')
         tree.heading('Percent', text='Percentage')
-        tree.column('#0', width=420)  # Increased from 350
-        tree.column('Votes', width=144, anchor='center')  # Increased from 120
-        tree.column('Percent', width=144, anchor='center')  # Increased from 120
+        tree.column('#0', width=420)  
+        tree.column('Votes', width=144, anchor='center') 
+        tree.column('Percent', width=144, anchor='center')  
         tree.pack(fill='both', expand=True)
 
         for name, votes in rows:
             percent = (votes/total*100) if total else 0
             tree.insert('', 'end', text=name, values=(votes, f"{percent:.2f}%"))
 
-        # Close button with styling
         close_btn = tk.Button(w, text='Close', bg='#6c757d', fg='white',
-                             font=('Arial', 13, 'bold'), padx=24, pady=10,  # Increased from 11, 20, 8
+                             font=('Arial', 13, 'bold'), padx=24, pady=10,  
                              relief='raised', bd=2, activebackground='#5a6268',
                              command=w.destroy)
-        close_btn.pack(pady=18)  # Increased padding
+        close_btn.pack(pady=18)  
 
     def clear_results(self):
         if not self.current_election_id:
@@ -396,7 +481,6 @@ class ElectionApp:
                                   'This action cannot be undone!'):
             return
         
-        # Delete all votes for this election
         self.db.execute('DELETE FROM Votes WHERE election_id = ?', (self.current_election_id,))
         messagebox.showinfo('Cleared', 'All votes have been cleared for this election.')
 

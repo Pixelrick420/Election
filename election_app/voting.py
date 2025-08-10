@@ -11,9 +11,8 @@ from PIL import Image, ImageTk
 from .security import SecurityManager
 from .exporter import ResultsExporter
 
-# UI Configuration Constants
-TITLE_TO_TABLE_SPACING = 0  # Space between title and table
-TITLE_PADDING = 5  # Padding around the title
+TITLE_TO_TABLE_SPACING = 0  
+TITLE_PADDING = 5 
 
 
 def play_beep_sound(frequency=800, duration=0.3):
@@ -90,11 +89,9 @@ class VotingInterface:
         self.win.focus_set()
         self.win.grab_set()
 
-        # Get screen dimensions for responsive design
         self.screen_width = self.win.winfo_screenwidth()
         self.screen_height = self.win.winfo_screenheight()
-        
-        # Calculate dynamic dimensions based on screen size
+    
         self._calculate_dynamic_dimensions()
 
         self.win.bind('<Return>', self._cast_vote)
@@ -112,45 +109,40 @@ class VotingInterface:
 
     def _calculate_dynamic_dimensions(self):
         """Calculate dimensions based on screen resolution"""
-        # Base dimensions for reference (1920x1080)
         base_width = 1920
         base_height = 1080
         
-        # Calculate scaling factors
         width_scale = self.screen_width / base_width
         height_scale = self.screen_height / base_height
         
-        # Use the smaller scale to ensure everything fits
-        self.scale_factor = min(width_scale, height_scale, 1.2)  # Cap at 1.2 for very large screens
+        self.scale_factor = min(width_scale, height_scale, 1.2)  
         
-        # Dynamic dimensions
-        self.row_height = max(int(140 * self.scale_factor), 100)  # Minimum 100px height
-        self.symbol_size = max(int(140 * self.scale_factor), 80)  # Minimum 80px symbols
+        self.row_height = max(int(140 * self.scale_factor), 100)  
         
-        # Calculate frame widths as percentages of available width
-        self.available_width = self.screen_width - 100  # Account for padding
+        max_symbol_height = self.row_height - 20  
+        scaled_symbol_size = int(140 * self.scale_factor)
+        self.symbol_size = min(max_symbol_height, scaled_symbol_size, 120)  
         
-        # Distribution: Name gets 55%, Symbol gets 20%, Button gets 25%
+        self.available_width = self.screen_width - 100  
+        
         self.name_width = int(self.available_width * 0.55)
         self.symbol_width = int(self.available_width * 0.20)
         self.button_width = int(self.available_width * 0.25)
         
-        # Font sizes
         self.title_font_size = max(int(50 * self.scale_factor), 24)
         self.candidate_font_size = max(int(24 * self.scale_factor), 14)
         self.button_font_size = max(int(18 * self.scale_factor), 12)
         
-        # Padding and margins
         self.main_padding = max(int(50 * self.scale_factor), 20)
         self.table_padding = max(int(20 * self.scale_factor), 10)
         
         print(f"Screen: {self.screen_width}x{self.screen_height}, Scale: {self.scale_factor:.2f}")
+        print(f"Row height: {self.row_height}, Symbol size: {self.symbol_size}")
         print(f"Widths - Name: {self.name_width}, Symbol: {self.symbol_width}, Button: {self.button_width}")
 
     def _disable_system_keys(self):
         """Disable system keys using xmodmap on Linux"""
         try:
-            # Disable Super (Windows) keys
             subprocess.run(['xmodmap', '-e', 'clear mod4'], check=False, capture_output=True)
             subprocess.run(['xmodmap', '-e', 'keycode 133='], check=False, capture_output=True)  # Left Super
             subprocess.run(['xmodmap', '-e', 'keycode 134='], check=False, capture_output=True)  # Right Super
@@ -160,7 +152,6 @@ class VotingInterface:
     def _restore_system_keys(self):
         """Restore system keys"""
         try:
-            # Restore Super keys
             subprocess.run(['xmodmap', '-e', 'keycode 133=Super_L'], check=False, capture_output=True)
             subprocess.run(['xmodmap', '-e', 'keycode 134=Super_R'], check=False, capture_output=True)
             subprocess.run(['xmodmap', '-e', 'add mod4 = Super_L Super_R'], check=False, capture_output=True)
@@ -189,7 +180,7 @@ class VotingInterface:
                 img = Image.open(image_path)
                 
                 square_img = Image.new('RGBA', (size, size), (255, 255, 255, 0))
-                container_size = size - int(20 * self.scale_factor)
+                container_size = size - max(int(10 * self.scale_factor), 4)
                 
                 orig_width, orig_height = img.size
                 scale_factor = min(container_size / orig_width, container_size / orig_height)
@@ -247,8 +238,7 @@ class VotingInterface:
         main_frame = tk.Frame(self.win, bg='white')
         main_frame.pack(expand=True, fill='both', padx=self.main_padding, pady=TITLE_TO_TABLE_SPACING)
 
-        # Check if we need scrolling (more than 6 candidates including NOTA, or if rows are too tall for screen)
-        max_displayable_candidates = max(1, (self.screen_height - 200) // self.row_height)  # Account for title and padding
+        max_displayable_candidates = max(1, (self.screen_height - 200) // self.row_height)  
         needs_scrolling = len(self.candidates) > max_displayable_candidates
 
         if needs_scrolling:
@@ -288,19 +278,16 @@ class VotingInterface:
             content_row.pack(fill='both', expand=True, padx=4)
             content_row.pack_propagate(False)
             
-            # Name frame with dynamic width
             name_frame = tk.Frame(content_row, bg='white', relief='flat', bd=0, width=self.name_width)
             name_frame.pack(side='left', fill='y', padx=(5,2))
             name_frame.pack_propagate(False)
             
-            # Calculate wrap length based on name frame width
-            wrap_length = max(self.name_width - 40, 200)  # Leave some padding, minimum 200
+            wrap_length = max(self.name_width - 40, 200)  
             
             tk.Label(name_frame, text=name,
                     font=('Arial', self.candidate_font_size), fg='#343a40', bg='white',
                     wraplength=wrap_length, justify='center').pack(expand=True)
             
-            # Symbol frame with dynamic width
             symbol_frame = tk.Frame(content_row, bg='white', relief='flat', bd=0, width=self.symbol_width)
             symbol_frame.pack(side='left', fill='y', padx=2)
             symbol_frame.pack_propagate(False)
@@ -314,14 +301,14 @@ class VotingInterface:
                 symbol_label = tk.Label(symbol_frame, image=candidate_img, bg='white')
                 symbol_label.image = candidate_img
             
-            symbol_label.pack(expand=True, pady=10)
+            available_height = self.row_height - 20 
+            vertical_padding = max(0, (available_height - self.symbol_size) // 2)
+            symbol_label.pack(expand=True, pady=vertical_padding)
             
-            # Button frame with dynamic width
             button_frame = tk.Frame(content_row, bg='white', relief='flat', bd=0, width=self.button_width)
             button_frame.pack(side='right', fill='y', padx=(2,5))
             button_frame.pack_propagate(False)
             
-            # Calculate button dimensions
             button_width_chars = max(6, self.button_width // (self.button_font_size + 2))
             button_height_chars = max(2, self.row_height // (self.button_font_size * 2))
             
@@ -357,14 +344,14 @@ class VotingInterface:
             img = Image.new('RGB', (size, size), 'white')
             draw = ImageDraw.Draw(img)
             
-            margin = max(int(20 * self.scale_factor), 10)
+            margin = max(int(15 * self.scale_factor), 8)  # Reduced margin
             circle_bbox = [margin, margin, size-margin, size-margin]
             
-            line_width = max(int(6 * self.scale_factor), 2)
+            line_width = max(int(4 * self.scale_factor), 2)  # Thinner lines for smaller symbols
             draw.ellipse(circle_bbox, outline="#000000", width=line_width, fill='#f8f9fa')
             
-            x_margin = max(int(36 * self.scale_factor), 18)
-            x_width = max(int(5 * self.scale_factor), 2)
+            x_margin = max(int(30 * self.scale_factor), 15)  # Adjusted X margins
+            x_width = max(int(3 * self.scale_factor), 2)  # Thinner X lines
             draw.line([x_margin, x_margin, size-x_margin, size-x_margin], fill="#000000", width=x_width)
             draw.line([x_margin, size-x_margin, size-x_margin, x_margin], fill="#000000", width=x_width)
             
