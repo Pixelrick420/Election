@@ -90,6 +90,13 @@ class VotingInterface:
         self.win.focus_set()
         self.win.grab_set()
 
+        # Get screen dimensions for responsive design
+        self.screen_width = self.win.winfo_screenwidth()
+        self.screen_height = self.win.winfo_screenheight()
+        
+        # Calculate dynamic dimensions based on screen size
+        self._calculate_dynamic_dimensions()
+
         self.win.bind('<Return>', self._cast_vote)
         self.win.bind('<space>', self._next_ballot)
         self.win.bind('<Tab>', self._delete_last_vote)
@@ -102,6 +109,43 @@ class VotingInterface:
         self.win.protocol("WM_DELETE_WINDOW", self._on_closing)
 
         self._build()
+
+    def _calculate_dynamic_dimensions(self):
+        """Calculate dimensions based on screen resolution"""
+        # Base dimensions for reference (1920x1080)
+        base_width = 1920
+        base_height = 1080
+        
+        # Calculate scaling factors
+        width_scale = self.screen_width / base_width
+        height_scale = self.screen_height / base_height
+        
+        # Use the smaller scale to ensure everything fits
+        self.scale_factor = min(width_scale, height_scale, 1.2)  # Cap at 1.2 for very large screens
+        
+        # Dynamic dimensions
+        self.row_height = max(int(140 * self.scale_factor), 100)  # Minimum 100px height
+        self.symbol_size = max(int(140 * self.scale_factor), 80)  # Minimum 80px symbols
+        
+        # Calculate frame widths as percentages of available width
+        self.available_width = self.screen_width - 100  # Account for padding
+        
+        # Distribution: Name gets 55%, Symbol gets 20%, Button gets 25%
+        self.name_width = int(self.available_width * 0.55)
+        self.symbol_width = int(self.available_width * 0.20)
+        self.button_width = int(self.available_width * 0.25)
+        
+        # Font sizes
+        self.title_font_size = max(int(50 * self.scale_factor), 24)
+        self.candidate_font_size = max(int(24 * self.scale_factor), 14)
+        self.button_font_size = max(int(18 * self.scale_factor), 12)
+        
+        # Padding and margins
+        self.main_padding = max(int(50 * self.scale_factor), 20)
+        self.table_padding = max(int(20 * self.scale_factor), 10)
+        
+        print(f"Screen: {self.screen_width}x{self.screen_height}, Scale: {self.scale_factor:.2f}")
+        print(f"Widths - Name: {self.name_width}, Symbol: {self.symbol_width}, Button: {self.button_width}")
 
     def _disable_system_keys(self):
         """Disable system keys using xmodmap on Linux"""
@@ -135,14 +179,17 @@ class VotingInterface:
         
         self._show_ballot()
 
-    def _create_square_image(self, image_path, size=140):
+    def _create_square_image(self, image_path, size=None):
         """Create a square image with consistent dimensions - contain instead of crop, preserving transparency"""
+        if size is None:
+            size = self.symbol_size
+            
         try:
             if image_path and os.path.exists(image_path):
                 img = Image.open(image_path)
                 
                 square_img = Image.new('RGBA', (size, size), (255, 255, 255, 0))
-                container_size = size - 20 
+                container_size = size - int(20 * self.scale_factor)
                 
                 orig_width, orig_height = img.size
                 scale_factor = min(container_size / orig_width, container_size / orig_height)
@@ -181,13 +228,13 @@ class VotingInterface:
             center_frame.place(relx=0.5, rely=0.5, anchor='center')
             
             tk.Label(center_frame, text='BALLOT CAST', 
-                    font=('Arial', 40, 'bold'), fg='#28a745', bg='white').pack(pady=(0,30))
+                    font=('Arial', int(40 * self.scale_factor), 'bold'), fg='#28a745', bg='white').pack(pady=(0,30))
             
             tk.Label(center_frame, text='✓', 
-                    font=('Arial', 100, 'bold'), fg='#28a745', bg='white').pack(pady=30)
+                    font=('Arial', int(100 * self.scale_factor), 'bold'), fg='#28a745', bg='white').pack(pady=30)
             
             tk.Label(center_frame, text='Waiting for voting officer...', 
-                    font=('Arial', 24), fg='#343a40', bg='white').pack(pady=50)
+                    font=('Arial', int(24 * self.scale_factor)), fg='#343a40', bg='white').pack(pady=50)
             
             return
 
@@ -195,13 +242,14 @@ class VotingInterface:
         title_frame.pack(fill='x')
         
         tk.Label(title_frame, text='Voting Machine', 
-                font=('Arial', 50, 'bold'), fg='#343a40', bg='white').pack()
+                font=('Arial', self.title_font_size, 'bold'), fg='#343a40', bg='white').pack()
 
         main_frame = tk.Frame(self.win, bg='white')
-        main_frame.pack(expand=True, fill='both', padx=50, pady=TITLE_TO_TABLE_SPACING)
+        main_frame.pack(expand=True, fill='both', padx=self.main_padding, pady=TITLE_TO_TABLE_SPACING)
 
-        # Check if we need scrolling (more than 6 candidates including NOTA)
-        needs_scrolling = len(self.candidates) > 6
+        # Check if we need scrolling (more than 6 candidates including NOTA, or if rows are too tall for screen)
+        max_displayable_candidates = max(1, (self.screen_height - 200) // self.row_height)  # Account for title and padding
+        needs_scrolling = len(self.candidates) > max_displayable_candidates
 
         if needs_scrolling:
             canvas = tk.Canvas(main_frame, bg='white', highlightthickness=0)
@@ -224,7 +272,7 @@ class VotingInterface:
             table_container = main_frame
 
         table_frame = tk.Frame(table_container, bg='#e9ecef', relief='flat', bd=0)
-        table_frame.pack(padx=20, pady=20, fill='x')
+        table_frame.pack(padx=self.table_padding, pady=self.table_padding, fill='x')
 
         border_frame = tk.Frame(table_frame, bg='#343a40', relief='flat', bd=0)
         border_frame.pack(fill='x', padx=6, pady=6)
@@ -236,45 +284,53 @@ class VotingInterface:
             row_frame = tk.Frame(border_frame, bg='#343a40', height=4)
             row_frame.pack(fill='x', pady=4)
             
-            content_row = tk.Frame(row_frame, bg='white', height=140, relief='flat', bd=0)
+            content_row = tk.Frame(row_frame, bg='white', height=self.row_height, relief='flat', bd=0)
             content_row.pack(fill='both', expand=True, padx=4)
             content_row.pack_propagate(False)
             
-            content_row.configure(width=1600)
-            
-            name_frame = tk.Frame(content_row, bg='white', relief='flat', bd=0, width=1000)
+            # Name frame with dynamic width
+            name_frame = tk.Frame(content_row, bg='white', relief='flat', bd=0, width=self.name_width)
             name_frame.pack(side='left', fill='y', padx=(5,2))
             name_frame.pack_propagate(False)
             
-            tk.Label(name_frame, text=name,
-                    font=('Arial', 24), fg='#343a40', bg='white',
-                    wraplength=800, justify='center').pack(expand=True)
+            # Calculate wrap length based on name frame width
+            wrap_length = max(self.name_width - 40, 200)  # Leave some padding, minimum 200
             
-            symbol_frame = tk.Frame(content_row, bg='white', relief='flat', bd=0, width=300)
+            tk.Label(name_frame, text=name,
+                    font=('Arial', self.candidate_font_size), fg='#343a40', bg='white',
+                    wraplength=wrap_length, justify='center').pack(expand=True)
+            
+            # Symbol frame with dynamic width
+            symbol_frame = tk.Frame(content_row, bg='white', relief='flat', bd=0, width=self.symbol_width)
             symbol_frame.pack(side='left', fill='y', padx=2)
             symbol_frame.pack_propagate(False)
             
             if cid == -1:
-                nota_img = self._create_nota_symbol()
+                nota_img = self._create_nota_symbol(self.symbol_size)
                 symbol_label = tk.Label(symbol_frame, image=nota_img, bg='white')
                 symbol_label.image = nota_img
             else:
-                candidate_img = self._create_square_image(symbol_path)
+                candidate_img = self._create_square_image(symbol_path, self.symbol_size)
                 symbol_label = tk.Label(symbol_frame, image=candidate_img, bg='white')
                 symbol_label.image = candidate_img
             
             symbol_label.pack(expand=True, pady=10)
             
-            button_frame = tk.Frame(content_row, bg='white', relief='flat', bd=0, width=300)
+            # Button frame with dynamic width
+            button_frame = tk.Frame(content_row, bg='white', relief='flat', bd=0, width=self.button_width)
             button_frame.pack(side='right', fill='y', padx=(2,5))
             button_frame.pack_propagate(False)
             
+            # Calculate button dimensions
+            button_width_chars = max(6, self.button_width // (self.button_font_size + 2))
+            button_height_chars = max(2, self.row_height // (self.button_font_size * 2))
+            
             vote_btn = tk.Button(button_frame, text='',
-                               font=('Arial', 18, 'bold'), 
+                               font=('Arial', self.button_font_size, 'bold'), 
                                bg='#dc3545', fg='white',
                                relief='flat', bd=0,
                                activebackground='#c82333', activeforeground='white',
-                               width=8, height=2,
+                               width=int(button_width_chars), height=int(button_height_chars),
                                cursor='hand2',
                                command=lambda idx=i: self._select_candidate(idx))
             vote_btn.pack(expand=True, padx=10, pady=15)
@@ -290,22 +346,27 @@ class VotingInterface:
             canvas.bind("<Button-4>", lambda e: canvas.yview_scroll(-1, "units"))
             canvas.bind("<Button-5>", lambda e: canvas.yview_scroll(1, "units"))
 
-    def _create_nota_symbol(self, size=140):
+    def _create_nota_symbol(self, size=None):
         """Create a standard NOTA symbol"""
+        if size is None:
+            size = self.symbol_size
+            
         try:
             from PIL import Image, ImageDraw, ImageFont
             
             img = Image.new('RGB', (size, size), 'white')
             draw = ImageDraw.Draw(img)
             
-            margin = 20
+            margin = max(int(20 * self.scale_factor), 10)
             circle_bbox = [margin, margin, size-margin, size-margin]
             
-            draw.ellipse(circle_bbox, outline="#000000", width=6, fill='#f8f9fa')
+            line_width = max(int(6 * self.scale_factor), 2)
+            draw.ellipse(circle_bbox, outline="#000000", width=line_width, fill='#f8f9fa')
             
-            x_margin = 36
-            draw.line([x_margin, x_margin, size-x_margin, size-x_margin], fill="#000000", width=5)
-            draw.line([x_margin, size-x_margin, size-x_margin, x_margin], fill="#000000", width=5)
+            x_margin = max(int(36 * self.scale_factor), 18)
+            x_width = max(int(5 * self.scale_factor), 2)
+            draw.line([x_margin, x_margin, size-x_margin, size-x_margin], fill="#000000", width=x_width)
+            draw.line([x_margin, size-x_margin, size-x_margin, x_margin], fill="#000000", width=x_width)
             
             return ImageTk.PhotoImage(img)
         except Exception:
