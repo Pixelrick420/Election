@@ -12,10 +12,10 @@ from .security import SecurityManager
 from .exporter import ResultsExporter
 
 TITLE_TO_TABLE_SPACING = 0  
-TITLE_PADDING = 5 
+TITLE_PADDING = 5  
 
 
-def play_beep_sound(frequency=800, duration=0.3):
+def play_beep_sound(frequency=800, duration=0.4):
     """Play a beep sound optimized for Ubuntu 22.04"""
     try:
         import subprocess
@@ -60,9 +60,9 @@ def play_beep_sound(frequency=800, duration=0.3):
 def play_double_beep():
     """Play double beep for deletion confirmation"""
     def beep_thread():
-        play_beep_sound(600, 0.2)
+        play_beep_sound(600, 0.3)
         time.sleep(0.1)
-        play_beep_sound(600, 0.2)
+        play_beep_sound(600, 0.3)
     
     threading.Thread(target=beep_thread, daemon=True).start()
 
@@ -91,7 +91,7 @@ class VotingInterface:
 
         self.screen_width = self.win.winfo_screenwidth()
         self.screen_height = self.win.winfo_screenheight()
-    
+        
         self._calculate_dynamic_dimensions()
 
         self.win.bind('<Return>', self._cast_vote)
@@ -115,6 +115,7 @@ class VotingInterface:
         width_scale = self.screen_width / base_width
         height_scale = self.screen_height / base_height
         
+
         self.scale_factor = min(width_scale, height_scale, 1.2)  
         
         self.row_height = max(int(140 * self.scale_factor), 100)  
@@ -210,6 +211,8 @@ class VotingInterface:
             widget.destroy()
         self.candidate_buttons = []
         self.selected_candidate = None
+        self._canvas = None
+        self._scrollable_frame = None
             
         if self.awaiting_next_ballot:
             waiting_frame = tk.Frame(self.win, bg='white')
@@ -238,28 +241,44 @@ class VotingInterface:
         main_frame = tk.Frame(self.win, bg='white')
         main_frame.pack(expand=True, fill='both', padx=self.main_padding, pady=TITLE_TO_TABLE_SPACING)
 
-        max_displayable_candidates = max(1, (self.screen_height - 200) // self.row_height)  
+        max_displayable_candidates = max(1, (self.screen_height - 200) // self.row_height) 
         needs_scrolling = len(self.candidates) > max_displayable_candidates
 
         if needs_scrolling:
-            canvas = tk.Canvas(main_frame, bg='white', highlightthickness=0)
-            scrollbar = tk.Scrollbar(main_frame, orient="vertical", command=canvas.yview)
+            scroll_container = tk.Frame(main_frame, bg='white')
+            scroll_container.pack(fill='both', expand=True)
+            
+            canvas = tk.Canvas(scroll_container, bg='white', highlightthickness=0)
+            scrollbar = tk.Scrollbar(scroll_container, orient="vertical", command=canvas.yview, width=20)
             scrollable_frame = tk.Frame(canvas, bg='white')
 
-            scrollable_frame.bind(
-                "<Configure>",
-                lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-            )
+            def configure_scroll_region(event=None):
+                canvas.configure(scrollregion=canvas.bbox("all"))
+                canvas_width = scrollable_frame.winfo_reqwidth()
+                canvas.configure(width=canvas_width)
 
-            canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+            scrollable_frame.bind("<Configure>", configure_scroll_region)
+
+            canvas_window = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
             canvas.configure(yscrollcommand=scrollbar.set)
 
             canvas.pack(side="left", fill="both", expand=True)
             scrollbar.pack(side="right", fill="y")
             
+            def configure_canvas_window(event):
+                canvas_width = event.width
+                canvas.itemconfig(canvas_window, width=canvas_width)
+            
+            canvas.bind("<Configure>", configure_canvas_window)
+            
             table_container = scrollable_frame
+            
+            self._canvas = canvas
+            self._scrollable_frame = scrollable_frame
         else:
             table_container = main_frame
+            self._canvas = None
+            self._scrollable_frame = None
 
         table_frame = tk.Frame(table_container, bg='#e9ecef', relief='flat', bd=0)
         table_frame.pack(padx=self.table_padding, pady=self.table_padding, fill='x')
@@ -301,7 +320,7 @@ class VotingInterface:
                 symbol_label = tk.Label(symbol_frame, image=candidate_img, bg='white')
                 symbol_label.image = candidate_img
             
-            available_height = self.row_height - 20 
+            available_height = self.row_height - 20  
             vertical_padding = max(0, (available_height - self.symbol_size) // 2)
             symbol_label.pack(expand=True, pady=vertical_padding)
             
@@ -324,15 +343,49 @@ class VotingInterface:
             
             self.candidate_buttons.append(vote_btn)
 
-        def _on_mousewheel(event):
-            if needs_scrolling:
-                canvas.yview_scroll(int(-1*(event.delta/120)), "units")
-        
         if needs_scrolling:
-            canvas.bind("<MouseWheel>", _on_mousewheel)
-            canvas.bind("<Button-4>", lambda e: canvas.yview_scroll(-1, "units"))
-            canvas.bind("<Button-5>", lambda e: canvas.yview_scroll(1, "units"))
+            self._bind_mousewheel_events()
 
+    def _bind_mousewheel_events(self):
+        """Bind mouse wheel events to canvas and all child widgets"""
+        def on_mousewheel(event):
+            try:
+                if self._canvas and self._canvas.winfo_exists():
+                    if event.delta:
+                        delta = -1 * int(event.delta / 120)
+                    elif event.num == 4:
+                        delta = -1
+                    elif event.num == 5:
+                        delta = 1
+                    else:
+                        return
+                    
+                    self._canvas.yview_scroll(delta, "units")
+            except (tk.TclError, AttributeError):
+                pass
+        
+        def bind_to_widget_and_children(widget):
+            """Bind mousewheel events to widget and all its children"""
+            try:
+                if widget.winfo_exists():
+                    widget.bind("<MouseWheel>", on_mousewheel) 
+                    widget.bind("<Button-4>", on_mousewheel)    
+                    widget.bind("<Button-5>", on_mousewheel)   
+                    
+                    for child in widget.winfo_children():
+                        bind_to_widget_and_children(child)
+            except tk.TclError:
+                pass
+        
+        if self._canvas and self._scrollable_frame:
+            bind_to_widget_and_children(self.win)
+            
+            self._canvas.bind("<MouseWheel>", on_mousewheel)
+            self._canvas.bind("<Button-4>", on_mousewheel) 
+            self._canvas.bind("<Button-5>", on_mousewheel)
+            
+            self._canvas.focus_set()
+            
     def _create_nota_symbol(self, size=None):
         """Create a standard NOTA symbol"""
         if size is None:
@@ -344,14 +397,14 @@ class VotingInterface:
             img = Image.new('RGB', (size, size), 'white')
             draw = ImageDraw.Draw(img)
             
-            margin = max(int(15 * self.scale_factor), 8)  # Reduced margin
+            margin = max(int(15 * self.scale_factor), 8)  
             circle_bbox = [margin, margin, size-margin, size-margin]
             
-            line_width = max(int(4 * self.scale_factor), 2)  # Thinner lines for smaller symbols
+            line_width = max(int(4 * self.scale_factor), 5)  
             draw.ellipse(circle_bbox, outline="#000000", width=line_width, fill='#f8f9fa')
             
-            x_margin = max(int(30 * self.scale_factor), 15)  # Adjusted X margins
-            x_width = max(int(3 * self.scale_factor), 2)  # Thinner X lines
+            x_margin = max(int(30 * self.scale_factor), 15)  
+            x_width = max(int(3 * self.scale_factor), 5) 
             draw.line([x_margin, x_margin, size-x_margin, size-x_margin], fill="#000000", width=x_width)
             draw.line([x_margin, size-x_margin, size-x_margin, x_margin], fill="#000000", width=x_width)
             
@@ -364,13 +417,18 @@ class VotingInterface:
         """Handle candidate selection when vote button is clicked"""
         if self.awaiting_next_ballot or self.has_voted_current_ballot:
             return
+        
+        try:
+            self.selected_candidate = candidate_index
             
-        self.selected_candidate = candidate_index
-        
-        for btn in self.candidate_buttons:
-            btn.config(bg='#dc3545', activebackground='#c82333')
-        
-        self.candidate_buttons[candidate_index].config(bg='#28a745', activebackground='#218838')
+            for i, btn in enumerate(self.candidate_buttons):
+                if btn.winfo_exists(): 
+                    if i == candidate_index:
+                        btn.config(bg='#28a745', activebackground='#218838')
+                    else:
+                        btn.config(bg='#dc3545', activebackground='#c82333')
+        except (tk.TclError, IndexError):
+            pass
 
     def _cast_vote(self, event=None):
         if self.awaiting_next_ballot or self.has_voted_current_ballot or self.selected_candidate is None:
@@ -390,7 +448,7 @@ class VotingInterface:
         else:
             self.db.execute('INSERT INTO Votes (election_id, candidate_id) VALUES (?, ?)', (self.election_id, candidate_id))
         
-        play_beep_sound(800, 0.3)
+        play_beep_sound()
         
         self.has_voted_current_ballot = True
         self.awaiting_next_ballot = True
