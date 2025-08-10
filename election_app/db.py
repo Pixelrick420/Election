@@ -1,6 +1,3 @@
-# ----------------------------
-# File: election_app/db.py
-# ----------------------------
 """Database manager (SQLite) with simple connection handling and foreign key support."""
 import sqlite3
 import threading
@@ -42,11 +39,9 @@ class DatabaseManager:
                 )
             ''')
 
-            # Add is_nota column to existing databases if it doesn't exist
             try:
                 cur.execute('ALTER TABLE Candidates ADD COLUMN is_nota INTEGER DEFAULT 0')
             except sqlite3.OperationalError:
-                # Column already exists
                 pass
 
             cur.execute('''

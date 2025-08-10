@@ -46,7 +46,6 @@ class ResultsExporter:
         csv_path = os.path.join(output_dir, base + ".csv")
         pdf_path = os.path.join(output_dir, base + ".pdf")
 
-        # Export JSON
         with open(json_path, 'w', encoding='utf-8') as f:
             json.dump({
                 'election_name': election_name,
@@ -55,23 +54,19 @@ class ResultsExporter:
                 'results': results_data
             }, f, indent=2)
 
-        # Export CSV
         with open(csv_path, 'w', encoding='utf-8') as f:
             f.write('Candidate,Votes,Percentage\n')
             for r in results_data:
                 f.write(f"{r['candidate']},{r['votes']},{r['percentage']}\n")
 
-        # Try PDF export
         try:
             self._create_pdf(election_name, results_data, total_votes, pdf_path, ts)
             pdf_created = pdf_path
         except ImportError:
-            # ReportLab not available, create text file as fallback
             txt_path = pdf_path.replace('.pdf', '.txt')
             self._create_text_report(election_name, results_data, total_votes, txt_path, ts)
             pdf_created = txt_path
         except Exception as e:
-            # Other error, create text file as fallback
             txt_path = pdf_path.replace('.pdf', '.txt')
             self._create_text_report(election_name, results_data, total_votes, txt_path, ts)
             pdf_created = txt_path
@@ -106,7 +101,6 @@ class ResultsExporter:
         )
         story.append(Paragraph("ELECTION RESULTS", title_style))
 
-        # Election details
         details_style = ParagraphStyle(
             'Details',
             parent=styles['Normal'],
@@ -118,14 +112,13 @@ class ResultsExporter:
         story.append(Paragraph(f"<b>Generated:</b> {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", details_style))
         story.append(Spacer(1, 30))
 
-        # Results table
         print("[DEBUG] Building results table...")
         table_data = [['Rank', 'Name', 'Votes', 'Percentage', 'Symbol']]
         for i, result in enumerate(results_data, 1):
             symbol_element = self._create_symbol_for_pdf(result.get('symbol_path'))
             table_data.append([
                 str(i),
-                result['candidate'],
+                result['candidate'][:35],
                 str(result['votes']),
                 f"{result['percentage']}%",
                 symbol_element
@@ -133,7 +126,7 @@ class ResultsExporter:
 
         table = Table(
             table_data,
-            colWidths=[0.6*inch, 2.5*inch, 1.2*inch, 1*inch, 1.5*inch], 
+            colWidths=[0.6*inch, 3*inch, 1.2*inch, 1*inch, 1.5*inch], 
             rowHeights=[None] + [0.8*inch] * len(results_data)
         )
         table.setStyle(TableStyle([
@@ -152,7 +145,6 @@ class ResultsExporter:
         ]))
         story.append(table)
 
-        # Totals section
         story.append(Spacer(1, 40))
         totals_style = ParagraphStyle(
             'Totals',

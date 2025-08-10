@@ -1,6 +1,3 @@
-# ----------------------------
-# File: election_app/security.py
-# ----------------------------
 """Security helpers for password hashing/verification."""
 import hashlib
 

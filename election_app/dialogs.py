@@ -1,6 +1,3 @@
-# ----------------------------
-# File: election_app/dialogs.py
-# ----------------------------
 """Dialogs used by the UI: Add/Edit Election and Candidate dialog classes."""
 import tkinter as tk
 from tkinter import simpledialog, messagebox, filedialog
@@ -71,7 +68,6 @@ class CandidateDialog(tk.Toplevel):
             self.name_var.set(self.candidate['name'])
 
     def _browse(self):
-        # Get the symbols directory path relative to the application root
         try:
             symbols_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'symbols')
             initial_dir = symbols_dir if os.path.exists(symbols_dir) else os.getcwd()
