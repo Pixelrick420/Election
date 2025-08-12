@@ -342,6 +342,9 @@ class ElectionApp:
                 self._select_election_by_id(self.current_election_id)
             else:
                 self.election_list.selection_clear(0, 'end')
+                self.current_election_id = None
+                self.election_label.config(text='No election selected')
+                self._refresh_candidates()
             return
             
         # Verify password
@@ -353,6 +356,9 @@ class ElectionApp:
                 self._select_election_by_id(self.current_election_id)
             else:
                 self.election_list.selection_clear(0, 'end')
+                self.current_election_id = None
+                self.election_label.config(text='No election selected')
+                self._refresh_candidates()
             return
             
         # Password is correct - set the current election
@@ -362,15 +368,32 @@ class ElectionApp:
         """Set the current election and update the UI"""
         self.current_election_id = eid
         self.election_label.config(text=f"Election: {name}")
+        
+        # Force immediate refresh of candidates to ensure correct display
+        self.root.update_idletasks()  # Process any pending UI updates
         self._refresh_candidates()
+        self.root.update_idletasks()  # Ensure candidate list is updated
+        
         # Don't call _load_elections here to avoid selection issues
 
     def _refresh_candidates(self):
+        """Refresh the candidates list for the current election"""
+        # Clear all existing items first
         for i in self.tree.get_children():
             self.tree.delete(i)
+            
+        # If no election is selected, just clear and return
         if not self.current_election_id:
             return
-        rows = self.db.execute('SELECT id, name, symbol_path FROM Candidates WHERE election_id = ? AND (is_nota IS NULL OR is_nota = 0)', (self.current_election_id,), fetch=True)
+            
+        # Get candidates for the current election only
+        rows = self.db.execute('''
+            SELECT id, name, symbol_path FROM Candidates 
+            WHERE election_id = ? AND (is_nota IS NULL OR is_nota = 0)
+            ORDER BY id
+        ''', (self.current_election_id,), fetch=True)
+        
+        # Add candidates to the tree
         for cid, name, symbol_path in rows:
             if not symbol_path:
                 symbol_display = 'No Symbol'
@@ -379,6 +402,9 @@ class ElectionApp:
             else:
                 symbol_display = os.path.basename(symbol_path)
             self.tree.insert('', 'end', values=(cid, name, symbol_display))
+        
+        # Force UI update to ensure changes are visible
+        self.tree.update_idletasks()
 
     def add_candidate(self):
         if not self.current_election_id:
