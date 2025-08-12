@@ -327,11 +327,6 @@ class ElectionApp:
         """Handle election selection from the listbox"""
         if self._loading_elections:  # Ignore selection events during loading
             return
-        
-        # Add flag to prevent multiple password dialogs
-        if hasattr(self, '_password_dialog_open') and self._password_dialog_open:
-            # A password dialog is already open, ignore this selection
-            return
             
         sel = self.election_list.curselection()
         if not sel:
@@ -360,8 +355,9 @@ class ElectionApp:
                     prev_election_name = prev_name
                     break
         
-        # Set flag to indicate password dialog is open
-        self._password_dialog_open = True
+        # Disable the listbox temporarily to prevent multiple selections
+        self.election_list.config(state='disabled')
+        self.root.update()
         
         try:
             # Prompt for password
@@ -423,8 +419,8 @@ class ElectionApp:
             self._set_current_election(eid, name)
             
         finally:
-            # Always clear the password dialog flag when done
-            self._password_dialog_open = False
+            # Always re-enable the listbox when done
+            self.election_list.config(state='normal')
 
     def _set_current_election(self, eid, name):
         """Set the current election and update the UI"""
