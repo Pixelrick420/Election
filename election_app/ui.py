@@ -27,6 +27,7 @@ class ElectionApp:
         self.root = root
         self.db = DatabaseManager()
         self.current_election_id = None
+        self._loading_elections = False  # Flag to prevent recursive loading
 
         self._build_ui()
         self._load_elections()
@@ -218,19 +219,40 @@ class ElectionApp:
         
         return True, "All symbols are valid and unique"
 
-    def _load_elections(self):
-        self.election_list.delete(0, 'end')
-        rows = self.db.execute('SELECT id, name FROM Elections ORDER BY created_at DESC', fetch=True)
-        self._elections = rows
-        for eid, name in rows:
-            self.election_list.insert('end', f"{name} (ID:{eid})")
+    def _load_elections(self, maintain_selection=True):
+        """Load elections list and optionally maintain current selection"""
+        if self._loading_elections:  # Prevent recursive calls
+            return
+            
+        self._loading_elections = True
         
-        if hasattr(self, 'current_election_id') and self.current_election_id:
-            for idx, (id_, name) in enumerate(self._elections):
-                if id_ == self.current_election_id:
-                    self.election_list.selection_set(idx)
-                    self.election_list.activate(idx)
-                    break
+        try:
+            # Store current selection info before clearing
+            current_selection_id = None
+            if maintain_selection and hasattr(self, 'current_election_id'):
+                current_selection_id = self.current_election_id
+            
+            # Clear and reload the list
+            self.election_list.delete(0, 'end')
+            rows = self.db.execute('SELECT id, name FROM Elections ORDER BY created_at DESC', fetch=True)
+            self._elections = rows
+            
+            # Populate the list
+            for eid, name in rows:
+                self.election_list.insert('end', f"{name} (ID:{eid})")
+            
+            # Restore selection if requested and election still exists
+            if maintain_selection and current_selection_id:
+                for idx, (eid, name) in enumerate(self._elections):
+                    if eid == current_selection_id:
+                        self.election_list.selection_clear(0, 'end')
+                        self.election_list.selection_set(idx)
+                        self.election_list.activate(idx)
+                        self.election_list.see(idx)
+                        break
+                        
+        finally:
+            self._loading_elections = False
 
     def create_election_dialog(self):
         d = ElectionDialog(self.root)
@@ -240,7 +262,7 @@ class ElectionApp:
                 from .security import SecurityManager
                 h = SecurityManager.hash_password(pw)
                 eid = self.db.execute('INSERT INTO Elections (name, admin_password_hash) VALUES (?, ?)', (name, h))
-                self._load_elections()
+                self._load_elections(maintain_selection=False)
                 self._select_election_by_id(eid)
                 messagebox.showinfo('Created', f"Election '{name}' created.")
             except Exception as e:
@@ -271,50 +293,77 @@ class ElectionApp:
         
         self.db.execute('DELETE FROM Elections WHERE id = ?', (eid,))
         
+        # Clear current selection if we deleted the current election
         if hasattr(self, 'current_election_id') and self.current_election_id == eid:
             self.current_election_id = None
             self.election_label.config(text='No election selected')
             self._refresh_candidates()
             
-        self._load_elections()
+        self._load_elections(maintain_selection=False)
         messagebox.showinfo('Deleted', f'Election "{name}" has been deleted.')
 
     def _select_election_by_id(self, eid):
-        self._load_elections()
+        """Select an election by ID and handle the selection properly"""
+        self._load_elections(maintain_selection=False)
         for idx, (id_, name) in enumerate(self._elections):
             if id_ == eid:
+                self.election_list.selection_clear(0, 'end')
                 self.election_list.selection_set(idx)
                 self.election_list.activate(idx)
                 self.election_list.see(idx)
                 self._set_current_election(id_, name)
-                return
+                return True
+        return False
 
     def _on_election_select(self, event=None):
+        """Handle election selection from the listbox"""
+        if self._loading_elections:  # Ignore selection events during loading
+            return
+            
         sel = self.election_list.curselection()
         if not sel:
             return
+            
         idx = sel[0]
+        if idx >= len(self._elections):  # Safety check
+            return
+            
         eid, name = self._elections[idx]
         
+        # If this is already the current election, don't do anything
         if hasattr(self, 'current_election_id') and self.current_election_id == eid:
             return
         
-        pw = simpledialog.askstring('Admin Password', 'Enter admin password:', show='*')
+        # Prompt for password
+        pw = simpledialog.askstring('Admin Password', f'Enter admin password for "{name}":', show='*')
         if pw is None:
-            self._load_elections()  
+            # User cancelled - restore previous selection if any
+            if hasattr(self, 'current_election_id') and self.current_election_id:
+                self._select_election_by_id(self.current_election_id)
+            else:
+                self.election_list.selection_clear(0, 'end')
             return
+            
+        # Verify password
         stored = self.db.execute('SELECT admin_password_hash FROM Elections WHERE id = ?', (eid,), fetch=True)
         if not stored or not SecurityManager.verify_password(pw, stored[0][0]):
             messagebox.showerror('Invalid', 'Incorrect password')
-            self._load_elections()  
+            # Restore previous selection if any
+            if hasattr(self, 'current_election_id') and self.current_election_id:
+                self._select_election_by_id(self.current_election_id)
+            else:
+                self.election_list.selection_clear(0, 'end')
             return
+            
+        # Password is correct - set the current election
         self._set_current_election(eid, name)
 
     def _set_current_election(self, eid, name):
+        """Set the current election and update the UI"""
         self.current_election_id = eid
         self.election_label.config(text=f"Election: {name}")
         self._refresh_candidates()
-        self._load_elections()  
+        # Don't call _load_elections here to avoid selection issues
 
     def _refresh_candidates(self):
         for i in self.tree.get_children():
