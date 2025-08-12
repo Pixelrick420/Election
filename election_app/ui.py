@@ -305,12 +305,20 @@ class ElectionApp:
     def _select_election_by_id(self, eid):
         """Select an election by ID and handle the selection properly"""
         self._load_elections(maintain_selection=False)
+        
+        # Force UI update
+        self.root.update()
+        
         for idx, (id_, name) in enumerate(self._elections):
             if id_ == eid:
                 self.election_list.selection_clear(0, 'end')
                 self.election_list.selection_set(idx)
                 self.election_list.activate(idx)
                 self.election_list.see(idx)
+                
+                # Force UI update after selection
+                self.root.update()
+                
                 self._set_current_election(id_, name)
                 return True
         return False
@@ -322,6 +330,10 @@ class ElectionApp:
             
         sel = self.election_list.curselection()
         if not sel:
+            # No selection - clear current election
+            self.current_election_id = None
+            self.election_label.config(text='No election selected')
+            self._refresh_candidates()
             return
             
         idx = sel[0]
@@ -334,31 +346,68 @@ class ElectionApp:
         if hasattr(self, 'current_election_id') and self.current_election_id == eid:
             return
         
+        # Store the current state in case we need to restore
+        prev_election_id = getattr(self, 'current_election_id', None)
+        prev_election_name = None
+        if prev_election_id:
+            for prev_id, prev_name in self._elections:
+                if prev_id == prev_election_id:
+                    prev_election_name = prev_name
+                    break
+        
         # Prompt for password
         pw = simpledialog.askstring('Admin Password', f'Enter admin password for "{name}":', show='*')
         if pw is None:
-            # User cancelled - restore previous selection if any
-            if hasattr(self, 'current_election_id') and self.current_election_id:
-                self._select_election_by_id(self.current_election_id)
+            # User cancelled - restore previous selection
+            if prev_election_id and prev_election_name:
+                # Force restore previous election
+                self.election_list.selection_clear(0, 'end')
+                self._loading_elections = True  # Prevent recursive calls
+                try:
+                    for restore_idx, (restore_id, _) in enumerate(self._elections):
+                        if restore_id == prev_election_id:
+                            self.election_list.selection_set(restore_idx)
+                            self.election_list.activate(restore_idx)
+                            break
+                    self.current_election_id = prev_election_id
+                    self.election_label.config(text=f"Election: {prev_election_name}")
+                    self._refresh_candidates()
+                finally:
+                    self._loading_elections = False
             else:
                 self.election_list.selection_clear(0, 'end')
                 self.current_election_id = None
                 self.election_label.config(text='No election selected')
                 self._refresh_candidates()
+            self.root.update()
             return
             
         # Verify password
         stored = self.db.execute('SELECT admin_password_hash FROM Elections WHERE id = ?', (eid,), fetch=True)
         if not stored or not SecurityManager.verify_password(pw, stored[0][0]):
             messagebox.showerror('Invalid', 'Incorrect password')
-            # Restore previous selection if any
-            if hasattr(self, 'current_election_id') and self.current_election_id:
-                self._select_election_by_id(self.current_election_id)
+            # Restore previous selection
+            if prev_election_id and prev_election_name:
+                # Force restore previous election
+                self.election_list.selection_clear(0, 'end')
+                self._loading_elections = True  # Prevent recursive calls
+                try:
+                    for restore_idx, (restore_id, _) in enumerate(self._elections):
+                        if restore_id == prev_election_id:
+                            self.election_list.selection_set(restore_idx)
+                            self.election_list.activate(restore_idx)
+                            break
+                    self.current_election_id = prev_election_id
+                    self.election_label.config(text=f"Election: {prev_election_name}")
+                    self._refresh_candidates()
+                finally:
+                    self._loading_elections = False
             else:
                 self.election_list.selection_clear(0, 'end')
                 self.current_election_id = None
                 self.election_label.config(text='No election selected')
                 self._refresh_candidates()
+            self.root.update()
             return
             
         # Password is correct - set the current election
@@ -366,45 +415,79 @@ class ElectionApp:
 
     def _set_current_election(self, eid, name):
         """Set the current election and update the UI"""
+        # Clear everything first
+        self.current_election_id = None
+        self.election_label.config(text='Loading...')
+        
+        # Clear candidates immediately
+        for i in self.tree.get_children():
+            self.tree.delete(i)
+        
+        # Force UI update
+        self.root.update()
+        
+        # Now set the new election
         self.current_election_id = eid
         self.election_label.config(text=f"Election: {name}")
         
-        # Force immediate refresh of candidates to ensure correct display
-        self.root.update_idletasks()  # Process any pending UI updates
-        self._refresh_candidates()
-        self.root.update_idletasks()  # Ensure candidate list is updated
+        # Force another UI update
+        self.root.update()
         
-        # Don't call _load_elections here to avoid selection issues
+        # Refresh candidates with the new election
+        self._refresh_candidates()
+        
+        # Final UI update to ensure everything is displayed
+        self.root.update()
 
     def _refresh_candidates(self):
         """Refresh the candidates list for the current election"""
-        # Clear all existing items first
-        for i in self.tree.get_children():
-            self.tree.delete(i)
+        # Force clear all existing items
+        try:
+            items = self.tree.get_children()
+            if items:
+                self.tree.delete(*items)
+        except:
+            # Fallback method if bulk delete fails
+            for i in self.tree.get_children():
+                try:
+                    self.tree.delete(i)
+                except:
+                    pass
+        
+        # Force UI update after clearing
+        self.root.update()
             
         # If no election is selected, just clear and return
         if not self.current_election_id:
+            self.root.update()
             return
             
         # Get candidates for the current election only
-        rows = self.db.execute('''
-            SELECT id, name, symbol_path FROM Candidates 
-            WHERE election_id = ? AND (is_nota IS NULL OR is_nota = 0)
-            ORDER BY id
-        ''', (self.current_election_id,), fetch=True)
+        try:
+            rows = self.db.execute('''
+                SELECT id, name, symbol_path FROM Candidates 
+                WHERE election_id = ? AND (is_nota IS NULL OR is_nota = 0)
+                ORDER BY id
+            ''', (self.current_election_id,), fetch=True)
+        except Exception as e:
+            print(f"Database error: {e}")
+            rows = []
         
         # Add candidates to the tree
         for cid, name, symbol_path in rows:
-            if not symbol_path:
-                symbol_display = 'No Symbol'
-            elif not os.path.exists(symbol_path):
-                symbol_display = f'{os.path.basename(symbol_path)} (Missing)'
-            else:
-                symbol_display = os.path.basename(symbol_path)
-            self.tree.insert('', 'end', values=(cid, name, symbol_display))
+            try:
+                if not symbol_path:
+                    symbol_display = 'No Symbol'
+                elif not os.path.exists(symbol_path):
+                    symbol_display = f'{os.path.basename(symbol_path)} (Missing)'
+                else:
+                    symbol_display = os.path.basename(symbol_path)
+                self.tree.insert('', 'end', values=(cid, name, symbol_display))
+            except Exception as e:
+                print(f"Tree insert error: {e}")
         
         # Force UI update to ensure changes are visible
-        self.tree.update_idletasks()
+        self.root.update()
 
     def add_candidate(self):
         if not self.current_election_id:
