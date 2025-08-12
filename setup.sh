@@ -131,6 +131,20 @@ install_tkinter() {
         sudo apt install -y python3-tk
         print_success "python3-tk installed successfully"
     fi
+    
+    # Test tkinter installation
+    print_status "Testing tkinter installation..."
+    if python3 -c "import tkinter; print('Tkinter test successful')" 2>/dev/null; then
+        print_success "Tkinter is working correctly"
+    else
+        print_error "Tkinter installation test failed!"
+        print_status "This may cause GUI issues. Please check your installation."
+        read -p "Continue anyway? (y/N): " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            exit 1
+        fi
+    fi
 }
 
 # Function to clone repository
