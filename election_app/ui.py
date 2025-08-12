@@ -327,6 +327,11 @@ class ElectionApp:
         """Handle election selection from the listbox"""
         if self._loading_elections:  # Ignore selection events during loading
             return
+        
+        # Add flag to prevent multiple password dialogs
+        if hasattr(self, '_password_dialog_open') and self._password_dialog_open:
+            # A password dialog is already open, ignore this selection
+            return
             
         sel = self.election_list.curselection()
         if not sel:
@@ -355,63 +360,71 @@ class ElectionApp:
                     prev_election_name = prev_name
                     break
         
-        # Prompt for password
-        pw = simpledialog.askstring('Admin Password', f'Enter admin password for "{name}":', show='*')
-        if pw is None:
-            # User cancelled - restore previous selection
-            if prev_election_id and prev_election_name:
-                # Force restore previous election
-                self.election_list.selection_clear(0, 'end')
-                self._loading_elections = True  # Prevent recursive calls
-                try:
-                    for restore_idx, (restore_id, _) in enumerate(self._elections):
-                        if restore_id == prev_election_id:
-                            self.election_list.selection_set(restore_idx)
-                            self.election_list.activate(restore_idx)
-                            break
-                    self.current_election_id = prev_election_id
-                    self.election_label.config(text=f"Election: {prev_election_name}")
+        # Set flag to indicate password dialog is open
+        self._password_dialog_open = True
+        
+        try:
+            # Prompt for password
+            pw = simpledialog.askstring('Admin Password', f'Enter admin password for "{name}":', show='*')
+            if pw is None:
+                # User cancelled - restore previous selection
+                if prev_election_id and prev_election_name:
+                    # Force restore previous election
+                    self.election_list.selection_clear(0, 'end')
+                    self._loading_elections = True  # Prevent recursive calls
+                    try:
+                        for restore_idx, (restore_id, _) in enumerate(self._elections):
+                            if restore_id == prev_election_id:
+                                self.election_list.selection_set(restore_idx)
+                                self.election_list.activate(restore_idx)
+                                break
+                        self.current_election_id = prev_election_id
+                        self.election_label.config(text=f"Election: {prev_election_name}")
+                        self._refresh_candidates()
+                    finally:
+                        self._loading_elections = False
+                else:
+                    self.election_list.selection_clear(0, 'end')
+                    self.current_election_id = None
+                    self.election_label.config(text='No election selected')
                     self._refresh_candidates()
-                finally:
-                    self._loading_elections = False
-            else:
-                self.election_list.selection_clear(0, 'end')
-                self.current_election_id = None
-                self.election_label.config(text='No election selected')
-                self._refresh_candidates()
-            self.root.update()
-            return
-            
-        # Verify password
-        stored = self.db.execute('SELECT admin_password_hash FROM Elections WHERE id = ?', (eid,), fetch=True)
-        if not stored or not SecurityManager.verify_password(pw, stored[0][0]):
-            messagebox.showerror('Invalid', 'Incorrect password')
-            # Restore previous selection
-            if prev_election_id and prev_election_name:
-                # Force restore previous election
-                self.election_list.selection_clear(0, 'end')
-                self._loading_elections = True  # Prevent recursive calls
-                try:
-                    for restore_idx, (restore_id, _) in enumerate(self._elections):
-                        if restore_id == prev_election_id:
-                            self.election_list.selection_set(restore_idx)
-                            self.election_list.activate(restore_idx)
-                            break
-                    self.current_election_id = prev_election_id
-                    self.election_label.config(text=f"Election: {prev_election_name}")
+                self.root.update()
+                return
+                
+            # Verify password
+            stored = self.db.execute('SELECT admin_password_hash FROM Elections WHERE id = ?', (eid,), fetch=True)
+            if not stored or not SecurityManager.verify_password(pw, stored[0][0]):
+                messagebox.showerror('Invalid', 'Incorrect password')
+                # Restore previous selection
+                if prev_election_id and prev_election_name:
+                    # Force restore previous election
+                    self.election_list.selection_clear(0, 'end')
+                    self._loading_elections = True  # Prevent recursive calls
+                    try:
+                        for restore_idx, (restore_id, _) in enumerate(self._elections):
+                            if restore_id == prev_election_id:
+                                self.election_list.selection_set(restore_idx)
+                                self.election_list.activate(restore_idx)
+                                break
+                        self.current_election_id = prev_election_id
+                        self.election_label.config(text=f"Election: {prev_election_name}")
+                        self._refresh_candidates()
+                    finally:
+                        self._loading_elections = False
+                else:
+                    self.election_list.selection_clear(0, 'end')
+                    self.current_election_id = None
+                    self.election_label.config(text='No election selected')
                     self._refresh_candidates()
-                finally:
-                    self._loading_elections = False
-            else:
-                self.election_list.selection_clear(0, 'end')
-                self.current_election_id = None
-                self.election_label.config(text='No election selected')
-                self._refresh_candidates()
-            self.root.update()
-            return
+                self.root.update()
+                return
+                
+            # Password is correct - set the current election
+            self._set_current_election(eid, name)
             
-        # Password is correct - set the current election
-        self._set_current_election(eid, name)
+        finally:
+            # Always clear the password dialog flag when done
+            self._password_dialog_open = False
 
     def _set_current_election(self, eid, name):
         """Set the current election and update the UI"""
