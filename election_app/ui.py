@@ -441,24 +441,30 @@ class ElectionApp:
 
     def _refresh_candidates(self):
         """Refresh the candidates list for the current election"""
-        # Force clear all existing items
+        # Force clear all existing items with multiple approaches for reliability
         try:
+            # Method 1: Bulk delete (fastest)
             items = self.tree.get_children()
             if items:
                 self.tree.delete(*items)
         except:
-            # Fallback method if bulk delete fails
+            # Method 2: Individual delete (fallback)
             for i in self.tree.get_children():
                 try:
                     self.tree.delete(i)
                 except:
                     pass
         
-        # Force UI update after clearing
+        # Force multiple UI updates to ensure clearing is processed on all systems
+        self.tree.update_idletasks()
+        self.root.update_idletasks()
         self.root.update()
             
         # If no election is selected, just clear and return
         if not self.current_election_id:
+            # Additional UI updates to ensure empty state is displayed
+            self.tree.update_idletasks()
+            self.root.update_idletasks()
             self.root.update()
             return
             
@@ -486,9 +492,10 @@ class ElectionApp:
             except Exception as e:
                 print(f"Tree insert error: {e}")
         
-        # Force UI update to ensure changes are visible
+        # Force multiple UI updates to ensure changes are visible on all systems
+        self.tree.update_idletasks()
+        self.root.update_idletasks()
         self.root.update()
-
     def add_candidate(self):
         if not self.current_election_id:
             messagebox.showerror('Error', 'Select an election first')
