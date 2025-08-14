@@ -46,11 +46,35 @@ package_installed() {
     dpkg -l | grep -q "^ii  $1 "
 }
 
+# Function to check internet connection
+check_internet() {
+    print_status "Checking internet connection..."
+    
+    # Try multiple methods to check connectivity
+    if ping -c 1 -W 5 8.8.8.8 >/dev/null 2>&1 || \
+       ping -c 1 -W 5 1.1.1.1 >/dev/null 2>&1 || \
+       curl -s --connect-timeout 5 https://github.com >/dev/null 2>&1 || \
+       wget --spider --timeout=5 https://github.com >/dev/null 2>&1; then
+        print_success "Internet connection verified"
+    else
+        print_error "No internet connection"
+        print_status "Internet connection is required to:"
+        print_status "  - Download packages and updates"
+        print_status "  - Clone the repository from GitHub"
+        print_status "  - Install Python packages"
+        exit 1
+    fi
+}
+
 # Function to update package lists
 update_packages() {
     print_status "Updating package lists..."
     print_status "This may take a moment, please wait..."
-    sudo apt update -qq
+    if ! sudo apt update -qq; then
+        print_error "Failed to update package lists"
+        print_error "No internet connection"
+        exit 1
+    fi
     print_success "Package lists updated"
 }
 
@@ -62,7 +86,11 @@ install_git() {
     else
         print_status "Installing Git..."
         print_status "Downloading and installing git package..."
-        sudo apt install -y git
+        if ! sudo apt install -y git; then
+            print_error "Failed to install Git"
+            print_error "No internet connection"
+            exit 1
+        fi
         print_success "Git installed successfully"
         git --version
     fi
@@ -76,7 +104,11 @@ install_python() {
     else
         print_status "Installing Python3..."
         print_status "Downloading and installing python3 package..."
-        sudo apt install -y python3
+        if ! sudo apt install -y python3; then
+            print_error "Failed to install Python3"
+            print_error "No internet connection"
+            exit 1
+        fi
         print_success "Python3 installed successfully"
     fi
     
@@ -86,7 +118,11 @@ install_python() {
     else
         print_status "Installing pip3..."
         print_status "Downloading and installing python3-pip package..."
-        sudo apt install -y python3-pip
+        if ! sudo apt install -y python3-pip; then
+            print_error "Failed to install pip3"
+            print_error "No internet connection"
+            exit 1
+        fi
         print_success "pip3 installed successfully"
     fi
     
@@ -96,7 +132,11 @@ install_python() {
     else
         print_status "Installing python3-venv..."
         print_status "Downloading and installing python3-venv package..."
-        sudo apt install -y python3-venv
+        if ! sudo apt install -y python3-venv; then
+            print_error "Failed to install python3-venv"
+            print_error "No internet connection"
+            exit 1
+        fi
         print_success "python3-venv installed successfully"
     fi
     
@@ -106,7 +146,11 @@ install_python() {
     else
         print_status "Installing python3-dev (required for some packages)..."
         print_status "Downloading and installing python3-dev package..."
-        sudo apt install -y python3-dev
+        if ! sudo apt install -y python3-dev; then
+            print_error "Failed to install python3-dev"
+            print_error "No internet connection"
+            exit 1
+        fi
         print_success "python3-dev installed successfully"
     fi
     
@@ -116,7 +160,11 @@ install_python() {
     else
         print_status "Installing build-essential (required for compiling packages)..."
         print_status "This is a larger package and may take a few minutes..."
-        sudo apt install -y build-essential
+        if ! sudo apt install -y build-essential; then
+            print_error "Failed to install build-essential"
+            print_error "No internet connection"
+            exit 1
+        fi
         print_success "build-essential installed successfully"
     fi
 }
@@ -128,7 +176,11 @@ install_tkinter() {
     else
         print_status "Installing python3-tk (tkinter GUI library)..."
         print_status "Downloading and installing tkinter package..."
-        sudo apt install -y python3-tk
+        if ! sudo apt install -y python3-tk; then
+            print_error "Failed to install python3-tk"
+            print_error "No internet connection"
+            exit 1
+        fi
         print_success "python3-tk installed successfully"
     fi
     
@@ -165,7 +217,11 @@ clone_repository() {
     
     print_status "Cloning Election Management System repository..."
     print_status "Downloading source code from GitHub..."
-    git clone "$REPO_URL" "$PROJECT_DIR"
+    if ! git clone "$REPO_URL" "$PROJECT_DIR"; then
+        print_error "Failed to clone repository"
+        print_error "No internet connection"
+        exit 1
+    fi
     print_success "Repository cloned successfully"
     cd "$PROJECT_DIR"
 }
@@ -201,15 +257,25 @@ install_requirements() {
     # Upgrade pip first
     print_status "Upgrading pip to latest version..."
     print_status "This ensures compatibility with all packages..."
-    pip install --upgrade pip
+    if ! pip install --upgrade pip; then
+        print_error "Failed to upgrade pip"
+        print_error "No internet connection"
+        exit 1
+    fi
     print_success "pip upgraded successfully"
     
     # Check if requirements.txt exists
     if [ ! -f "requirements.txt" ]; then
         print_warning "requirements.txt not found, creating basic requirements..."
         cat > requirements.txt << EOF
-bcrypt==4.1.2
-Pillow==10.2.0
+altgraph==0.17.4
+charset-normalizer==3.4.3
+packaging==25.0
+pillow==11.3.0
+pyinstaller==6.15.0
+pyinstaller-hooks-contrib==2025.8
+reportlab==4.4.3
+setuptools==80.9.0
 EOF
     fi
     
@@ -218,7 +284,11 @@ EOF
     print_status "Installing bcrypt (password hashing library)..."
     print_status "Installing Pillow (image processing library)..."
     print_status "This may take a few minutes as packages are compiled..."
-    pip install -r requirements.txt
+    if ! pip install -r requirements.txt; then
+        print_error "Failed to install Python packages"
+        print_error "No internet connection"
+        exit 1
+    fi
     
     print_success "All requirements installed successfully"
 }
@@ -359,6 +429,10 @@ main() {
     trap cleanup_on_error ERR
     
     print_status "Starting installation process..."
+    echo
+    
+    # Step 0: Check internet connection
+    check_internet
     echo
     
     # Step 1: Update packages
